@@ -17,11 +17,8 @@
     #auth: "{{ os_auth }}"
     userdata: |
       #!/bin/bash
-      mkdir -p /home/cloud-user/.ssh
-      echo {{ openstack_key }} >>   /home/cloud-user/.ssh/authorized_keys
-      chown -R cloud-user: /home/cloud-user/.ssh
-      chmod u=rw,go= /home/cloud-user/.ssh/authorized_keys
-      chmod u=rwx,go= /home/cloud-user/.ssh
+      curl -o /tmp/openstack.pub http://www.opentlc.com/download/ansible_bootcamp/openstack_keys/openstack.pub
+      cat /tmp/openstack.pub >> /home/cloud-user/.ssh/authorized_keys
   loop: "{{ osp_servers | dict2items }}"
 
 - name: Add floating IP to Servers
