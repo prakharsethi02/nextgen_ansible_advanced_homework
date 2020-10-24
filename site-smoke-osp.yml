@@ -5,24 +5,24 @@
 
   - name: OpenStack servers
     os_server_info:
-      cloud: openstack
+     cloud: openstack
+     server: 'frontend'
     register: r_os_server_info
-    tags:
-      - osp.smoke
-
-  - name: Get frontend server info
-    set_fact:
-      _frontend_server_info: "{{ item }}"
-    with_items: "{{ r_os_server_info.openstack_servers }}"
-    when: "'frontend' in item.name"
-    tags:
-      - osp.smoke
-
+    
   - name: Curl website
     uri:
-      url: http://{{ _frontend_server_info.public_v4 }}
-      return_content: yes
+     url: "http://{{item.public_v4}}"
+     return_content: yes
+    with_items:
+      - "{{ r_os_server_info.openstack_servers }}"
     register: r_webpage
+
+  - debug:
+      var: r_webpage.results[0].content
+
+  - name: Fail if 'Ansible has done its job' is not in the page content
+    fail:
+    when: "'Ansible has done its job' not in r_webpage.results[0].content"
     tags:
       - osp.smoke
 
