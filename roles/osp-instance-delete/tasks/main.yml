@@ -2,16 +2,16 @@
 # tasks file for roles/osp-instance-delete
 - name: Fetch Instance Info
   os_server_info:
-    server: "*"
-    # filters:
-    #   vm_state: active
-    #auth: "{{ os_auth }}"
-  register: r_servers
-# - debug:
-#     msg: "{{ result.openstack_servers }}"
+    cloud: openstack
+  register: r_os_server_info
+
 - name: Delete instances
   os_server:
-    name: "{{ item.name }}"
+    cloud: openstack
+    name: "{{ _server.name }}"
     state: absent
-    #auth: "{{ os_auth }}"
-  loop: "{{ r_servers.openstack_servers }}"
+    delete_fip: yes
+  loop: "{{ r_os_server_info.openstack_servers }}"
+  loop_control:
+    loop_var: _server
+    label: "{{ _server.name }}"
