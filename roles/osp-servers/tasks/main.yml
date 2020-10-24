@@ -25,7 +25,7 @@
   os_floating_ip:
     server: "{{ item.value.name }}"
     network: ext_network
-    auth: "{{ os_auth }}"
+    #auth: "{{ os_auth }}"
   loop: "{{ osp_servers | dict2items }}"
 
 - name: Wait for server to be available
