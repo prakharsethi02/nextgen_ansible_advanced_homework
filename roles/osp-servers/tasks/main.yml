@@ -8,14 +8,14 @@
 
 - name: Create keypair for servers to use
   os_keypair:
-    cloud: ospcloud
+    cloud: openstack
     state: present
     name: ansible_ssh
     public_key_file: /tmp/ansible_ssh.pub
 
 - name: Create new server instances and attaches them a network and passes metadata to the instance
   os_server:
-    cloud: ospcloud
+    cloud: openstack
     state: "{{ item.state }}"
     name: "{{ item.name }}"
     meta: "{{ item.meta }}"
@@ -29,7 +29,7 @@
 
 - name: Add floating IP to Servers
   os_floating_ip:
-    cloud: ospcloud
+    cloud: openstack
     state: present
     server: "{{ item.name }}"
     network: "{{ osp_network.external.name }}"
@@ -41,7 +41,7 @@
 
 - name: Ensure servers are started
   os_server_action:
-    cloud: ospcloud
+    cloud: openstack
     action: start
     server: "{{ item.name }}"
   loop: "{{ osp_servers }}"
