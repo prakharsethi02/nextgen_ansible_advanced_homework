@@ -8,7 +8,11 @@
     replace: 'Defaults  !requiretty'
     backup: yes
 
-- name: enable repos
- 
-- name: install base tools and packages
+- name: pull repo file from local site into /etc
+  become: yes
+  become_user: root
+  copy:
+      dest: /etc/yum.repos.d/internal.repo
+      src: original.repo
+      mode: u=rw,g=r,o=r
 
