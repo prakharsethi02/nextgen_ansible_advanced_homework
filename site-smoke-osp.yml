@@ -1,31 +1,30 @@
 - hosts: workstation
-  gather_facts: true
-  roles:
-  - name: osp-facts
+  gather_facts: false
   tasks:
+  - name: OpenStack servers
+    os_server_info:
+      cloud: openstack
+    register: result
+
+  - name: set ip address
+    set_fact:
+       frontend_ip: "{{ item.public_v4 }}"
+    with_items: "{{ result.openstack_servers }}"
+    when: '"frontend" in item.name'
+
   - name: Curl website
     uri:
-      url: "http://{% for host in groups['frontends'] %}{{ host }}{% endfor %}"
+      url: "http://{{ frontend_ip }}"
       return_content: yes
       status_code: 200
     register: webpage
-    tags:
-      - osp.smoke
 
-  - debug: var=webpage.content
-    tags:
-      - osp.smoke
-
-#  - name: Fail if 'Ansible has done its job' is not in the page content
-#    fail:
-#    when: "'Ansible has done its job' not in webpage.content"
-#  - name: Curl website
-#    command:
-#      cmd: "curl -s {% for host in groups['load_balancers'] %} http://{{ host }} {% endfor %}"
-#    register: result
+  - name: debug
+    debug:
+     var:  webpage.results
 
   - name: Fail if 'Ansible has done its job' is not in the page content
     fail:
-    when: "'Ansible has done its job' not in  webpage.content"
+    when: "'Ansible has done its job' not in webpage.content"
     tags:
       - osp.smoke
