@@ -1,54 +1,51 @@
 ---
 
 # tasks file for osp.servers
-- name: Get public key
-  get_url:
-    url: http://www.opentlc.com/download/ansible_bootcamp/openstack_keys/openstack.pub
-    dest: /tmp/ansible_ssh.pub
-
-- name: Create keypair for servers to use
-  os_keypair:
-    cloud: openstack
-    state: present
-    name: ansible_ssh
-    public_key_file: /tmp/ansible_ssh.pub
-
-- name: Create new server instances and attaches them a network and passes metadata to the instance
+- name: Create instances
   os_server:
     cloud: openstack
-    state: "{{ item.state }}"
-    name: "{{ item.name }}"
-    meta: "{{ item.meta }}"
-    flavor: "{{ item.flavor }}"
-    key_name: ansible_ssh
+    name: "{{ __openstack_server.value.name }}"
+    image: "{{ __openstack_server.value.image }}"
+    key_name: "{{ __openstack_server.value.key_name }}"
+    flavor: "{{ __openstack_server.value.flavor }}"
+    security_groups: "{{ __openstack_server.value.security_group }}"
+    delete_fip: yes
+    wait: no
     nics:
-    - net-name: "{{ osp_network.internal.name }}"
-    image: "{{ item.image }}"
-    security_groups: "{{ item.security_group }}"
-  loop: "{{ osp_servers }}"
+      - net-name: int_network
+    meta: "group={{ __openstack_server.value.meta.group }},deployment_name={{ __openstack_server.value.meta.deployment_name }}"
+    userdata: | 
+      #!/bin/bash
+      curl -o /tmp/openstack.pub http://www.opentlc.com/download/ansible_bootcamp/openstack_keys/openstack.pub
+      cat /tmp/openstack.pub >> /home/cloud-user/.ssh/authorized_keys
+  loop: "{{ osp_servers | dict2items }}"
+  loop_control:
+    loop_var: __openstack_server
+    
+- name: Debug
+  debug: 
+    var: osp_servers
 
-- name: Add floating IP to Servers
+- name: Add floating IP to instance
   os_floating_ip:
     cloud: openstack
     state: present
-    server: "{{ item.name }}"
-    network: "{{ osp_network.external.name }}"
     reuse: yes
-    wait: yes
-    timeout: 180
-  loop: "{{ osp_servers }}"
-  register: ip_assign
+    server: "{{ __instance.value.name }}"
+    network: ext_network
+    wait: true
+    timeout: 200
+  loop: "{{ osp_servers | dict2items }}"
+  loop_control:
+    loop_var: __instance
+  register: r_floating_ips
 
-- name: Ensure servers are started
-  os_server_action:
-    cloud: openstack
-    action: start
-    server: "{{ item.name }}"
-  loop: "{{ osp_servers }}"
-
-- name: Wait for servers to offer SSH
+- name: Wait for servers by name to be available
   wait_for:
+    host: "{{ __fip.floating_ip.floating_ip_address }}"
     port: 22
-    host: '{{ item }}'
     search_regex: OpenSSH
-  loop: "{{ ip_assign | json_query('results[*].floating_ip.floating_ip_address') }}"
+    timeout: 600
+  loop: "{{ r_floating_ips.results }}"
+  loop_control:
+    loop_var: __fip
