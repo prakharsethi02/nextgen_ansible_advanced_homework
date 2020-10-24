@@ -1,23 +1,31 @@
 - hosts: workstation
-  gather_facts: false
-  tasks: 
-  - name: OpenStack servers
-    os_server_info:
-      cloud: openstack
-      filters:
-        hostname: frontend
-    register: result
-  
-  - name: Retrieve LB ( frontend ) public_v4 
-    debug: msg="{{ result.openstack_servers[0].public_v4 }}" 
-
-    # we have a single LB server, picking the 1st is fine 
+  gather_facts: true
+  roles:
+  - name: osp-facts
+  tasks:
   - name: Curl website
-    action: uri url="http://{{ result.openstack_servers[0].public_v4 }}" timeout=60 return_content=yes
-    register: webpage 
+    uri:
+      url: "http://{% for host in groups['frontends'] %}{{ host }}{% endfor %}"
+      return_content: yes
+      status_code: 200
+    register: webpage
+    tags:
+      - osp.smoke
+
+  - debug: var=webpage.content
+    tags:
+      - osp.smoke
+
+#  - name: Fail if 'Ansible has done its job' is not in the page content
+#    fail:
+#    when: "'Ansible has done its job' not in webpage.content"
+#  - name: Curl website
+#    command:
+#      cmd: "curl -s {% for host in groups['load_balancers'] %} http://{{ host }} {% endfor %}"
+#    register: result
 
   - name: Fail if 'Ansible has done its job' is not in the page content
-    fail: 
-    when: "'Ansible has done its job' not in webpage.content"
+    fail:
+    when: "'Ansible has done its job' not in  webpage.content"
     tags:
       - osp.smoke
