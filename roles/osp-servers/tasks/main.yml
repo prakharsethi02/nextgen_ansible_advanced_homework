@@ -1,51 +1,66 @@
 ---
 
 # tasks file for osp.servers
-- name: Create instances
+- name: Create new server instances and attaches them a network and passes metadata to the instance
   os_server:
     cloud: openstack
-    name: "{{ __openstack_server.value.name }}"
-    image: "{{ __openstack_server.value.image }}"
-    key_name: "{{ __openstack_server.value.key_name }}"
-    flavor: "{{ __openstack_server.value.flavor }}"
-    security_groups: "{{ __openstack_server.value.security_group }}"
+    name: "{{ item.0.name }}"
+    image: "{{ item.0.image }}"
+    key_name: "{{ item.0.key_name }}"
+    flavor: "{{ item.0.flavor }}"
+    security_groups: "{{ item.0.security_group }}"
     delete_fip: yes
     wait: no
     nics:
       - net-name: int_network
-    meta: "group={{ __openstack_server.value.meta.group }},deployment_name={{ __openstack_server.value.meta.deployment_name }}"
-    userdata: | 
+    meta: "{{ item.1 }}"
+    userdata: |
       #!/bin/bash
       curl -o /tmp/openstack.pub http://www.opentlc.com/download/ansible_bootcamp/openstack_keys/openstack.pub
       cat /tmp/openstack.pub >> /home/cloud-user/.ssh/authorized_keys
-  loop: "{{ osp_servers | dict2items }}"
-  loop_control:
-    loop_var: __openstack_server
-    
-- name: Debug
-  debug: 
-    var: osp_servers
+  with_subelements:
+    - "{{osp_servers}}"
+    - meta
+  tags:
+  - test.servers
 
-- name: Add floating IP to instance
+
+- name: Add floating IP to Servers
   os_floating_ip:
     cloud: openstack
     state: present
     reuse: yes
-    server: "{{ __instance.value.name }}"
+    server: "{{ item.value.name }}"
     network: ext_network
     wait: true
     timeout: 200
-  loop: "{{ osp_servers | dict2items }}"
-  loop_control:
-    loop_var: __instance
-  register: r_floating_ips
+  with_dict: "{{osp_servers}}"
+  tags:
+  - test.servers
+   
+- name: OpenStack servers
+  os_server_facts:
+    cloud: openstack
+  register: result
+  tags:
+    - test.servers
 
-- name: Wait for servers by name to be available
+# - name: Print records  
+#   debug:
+#     var: item.name
+#   with_items: 
+#   - "{{ openstack_servers}}"
+#   tags:
+#     - test.servers
+
+- name: Wait for server to be available
   wait_for:
-    host: "{{ __fip.floating_ip.floating_ip_address }}"
+    host: "{{ item.public_v4 }}"
     port: 22
     search_regex: OpenSSH
     timeout: 600
-  loop: "{{ r_floating_ips.results }}"
-  loop_control:
-    loop_var: __fip
+  delegate_to: "{{ inventory_hostname }}"
+  with_items: 
+    - "{{ result.ansible_facts.openstack_servers }}"
+  tags:
+    - test.servers
