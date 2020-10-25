@@ -7,9 +7,9 @@
       server: frontend
     register: result
 
-  # - name: Debug Info
-  #   debug:
-  #     msg: "IP is: {{ result.openstack_servers[0].public_v4 }}"
+  - name: Debug Info
+    debug:
+      msg: "IP is: {{ result.openstack_servers[0].public_v4 }}"
 
   - name: Request webpage from frontend
     uri:
