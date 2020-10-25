@@ -13,7 +13,8 @@
     uri:
       url: "http://{{item.public_v4}}/ping"
       return_content: yes
-    loop: '{{ groups.frontends }}'
+    with_items:
+        - "{{ r_os_server_info.openstack_servers }}"
     until: '"alive" in result.content'
     retries: 10
     delay: 1
