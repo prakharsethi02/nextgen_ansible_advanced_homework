@@ -16,7 +16,7 @@
       follow_redirects: all
       status_code: 200
       validate_certs: no
-      with_items:
+    with_items:
         - "{{ r_os_server_info.openstack_servers }}"
     register: r_webpage
 
