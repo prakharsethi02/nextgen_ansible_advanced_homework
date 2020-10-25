@@ -11,10 +11,13 @@
     
   - name: Curl website
     uri:
-     url: "http://{{item.public_v4}}"
-     return_content: yes
-    with_items:
-      - "{{ r_os_server_info.openstack_servers }}"
+      url: "http://{{item.public_v4}}"
+      return_content: yes
+      follow_redirects: all
+      status_code: 200
+      validate_certs: no
+      with_items:
+        - "{{ r_os_server_info.openstack_servers }}"
     register: r_webpage
 
   - debug:
