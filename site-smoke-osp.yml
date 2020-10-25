@@ -11,15 +11,15 @@
     
   - name: Curl website
     uri:
-      url: "http://{{item.public_v4}}"
+      url: "http://{{item.public_v4}}/ping"
       return_content: yes
-      follow_redirects: all
-      status_code: 200
-      validate_certs: no
-    with_items:
-        - "{{ r_os_server_info.openstack_servers }}"
-    register: r_webpage
-
+    loop: '{{ groups.frontends }}'
+    until: '"alive" in result.content'
+    retries: 10
+    delay: 1
+    register: result
+    delegate_to: localhost
+    
   - debug:
       var: r_webpage.results[0].content
 
