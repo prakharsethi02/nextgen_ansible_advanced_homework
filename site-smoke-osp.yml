@@ -1,4 +1,4 @@
-- hosts: workstation
+- hosts: frontend
   gather_facts: false
   tasks:
   - name: OpenStack servers
@@ -21,7 +21,7 @@
     retries: 10
     delay: 1
     register: result
-    delegate_to: app_servers
+    delegate_to: workstation
 
   - name: Debug Info
     debug:
