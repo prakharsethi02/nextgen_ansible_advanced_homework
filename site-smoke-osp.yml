@@ -1,28 +1,46 @@
-- hosts: isolated_group_osp
-  gather_facts: false
+---
+- name: End to end smoke tests
+  hosts: apps:appdbs
+  gather_facts: true
+  become: true
+  tags:
+    - osp.smoke 
+
   tasks:
-  - name: OpenStack servers
-    os_server_info:
-     cloud: openstack
-     server: 'frontend'
-    register: openstack_info
-    tags:
-      - osp.smoke
 
-  - name: Curl website
-    uri:
-     url: "http://{{item.public_v4}}"
-     return_content: yes
-    with_items:
-      - "{{ openstack_info.openstack_servers }}"
-    register: webpage
-    tags:
-      - osp.smoke
+    - debug:
+        msg: 
+          # - "IP is {{ hostvars['appdb1']['ansible_default_ipv4']['address'] }}"
+          - "IP is {{ hostvars['appdb1']['inventory_hostname'] }}"
+          - "First App server  {{ groups.apps[0] }}" 
+        verbosity: 2        
 
+    - name: Smoketest Postgres database
+      postgresql_ping:
+        db: flask_db
+        # login_host: "{{ hostvars['appdb1']['ansible_default_ipv4']['address'] }}"
+        login_host: "{{ groups.appdbs[0].ansible_host }}"
+        login_user: flask
+        login_password: redhat
+        ssl_mode: disable
+      delegate_to: "{{ groups.apps[0] }}"
+      run_once: true
+      tags:
+        - osp.smoke
 
-
-  - name: Fail if 'Ansible has done its job' is not in the page content
-    fail:
-    when: "'Ansible has done its job' not in webpage.results[0].content"
-    tags:
-      - osp.smoke 
+- name: End to end smoke tests
+  hosts: apps
+  become: false
+  gather_facts: false
+  tags:
+    - osp.smoke
+  tasks:
+ 
+    - name: Check webserver for correct response
+      uri:
+        url: "http://frontend1.{{ GUID }}.example.opentlc.com"
+        return_content: yes
+      retries: 10
+      delay: 1
+      register: result
+      delegate_to: localhost
