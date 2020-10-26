@@ -9,8 +9,6 @@
     key_name: "{{ item.0.key_name }}"
     flavor: "{{ item.0.flavor }}"
     security_groups: "{{ item.0.security_group }}"
-    delete_fip: yes
-    wait: no
     nics:
       - net-name: int_network
     meta: "{{ item.1 }}"
@@ -37,7 +35,7 @@
   with_dict: "{{osp_servers}}"
   tags:
   - test.servers
-   
+
 - name: OpenStack servers
   os_server_facts:
     cloud: openstack
@@ -45,13 +43,13 @@
   tags:
     - test.servers
 
-# - name: Print records  
-#   debug:
-#     var: item.name
-#   with_items: 
-#   - "{{ openstack_servers}}"
-#   tags:
-#     - test.servers
+- name: Print records
+  debug:
+     var: item.name
+  with_items:
+  - "{{ openstack_servers}}"
+  tags:
+     - test.servers
 
 - name: Wait for server to be available
   wait_for:
@@ -60,7 +58,7 @@
     search_regex: OpenSSH
     timeout: 600
   delegate_to: "{{ inventory_hostname }}"
-  with_items: 
+  with_items:
     - "{{ result.ansible_facts.openstack_servers }}"
   tags:
     - test.servers
