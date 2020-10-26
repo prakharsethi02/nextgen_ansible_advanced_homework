@@ -1,4 +1,4 @@
-- hosts: tag_AnsibleGroup_frontends
+- hosts: workstation
   gather_facts: false
   tasks:
   - name: OpenStack servers
@@ -19,7 +19,7 @@
     until: '"alive" in result.content'
     retries: 10
     delay: 1
-    delegate_to: workstation
+    delegate_to: tag_AnsibleGroup_frontends
 
   - name: Debug Info
     debug:
