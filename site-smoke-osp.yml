@@ -1,22 +1,43 @@
 - hosts: workstation
   gather_facts: false
-  pre_tasks: 
-  vars:
-    - 
   tasks:
-  - name: Get OpenStack Instances
+  - name: OpenStack servers
     os_server_info:
       cloud: openstack
-      server: frontend*
-      filters:
-        vm_state: active
-    register: osp_frontends
+    register: r_os_servers
 
-  - name: Frontend HTTP Request
+  - name: Debugging
+    debug:
+      msg: "{{ r_os_servers.openstack_servers }}"
+
+  - name: Add host
+    add_host:
+      name: "{{ item.public_v4 }}"
+      group:
+        - "{{ item.metadata.group }}"
+        - "{{ item.metadata.deployment_name }}"
+    loop: "{{ r_os_servers.openstack_servers }}"
+      
+  - name: set ip address for testing
+    set_fact:
+       frontendIP: "{{ item.public_v4 }}"
+    with_items: "{{ r_os_servers.openstack_servers }}"
+    when: '"frontend" in item.name'
+
+  - name: Curl website
     uri:
-      url: "http://{{ item.public_v4 }}"
+      url: 'http://{{ frontendIP }}'
       return_content: yes
       status_code: 200
-    loop: "{{ osp_frontends.openstack_servers }}"
     register: webpage
-    failed_when: "'Ansible has done its job' not in webpage.content"
+ 
+  - name: debug
+    debug:
+      var: webpage
+
+  - name: Fail if 'Ansible has done its job' is not in the page content
+    fail:
+    when: "'Ansible has done its job' not in webpage.content"
+    # when: "'Ansible has done its job' not in webpage.results[0].content"
+    tags:
+      - osp.smoke
