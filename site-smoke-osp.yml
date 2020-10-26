@@ -1,4 +1,4 @@
-- hosts: workstation
+- hosts: app_servers
   gather_facts: false
   tasks:
   - name: OpenStack servers
@@ -13,15 +13,13 @@
 
   - name: Request webpage from frontend
     uri:
-      url: "http://{{ item.public_v4 }}/ping"
+      url: "http://frontend1/ping"
       status_code: 200
       return_content: yes
-    register: webpage
-    loop: '{{ groups.frontends }}'
-    # when: 'item.hostname == "frontend"'
-    # loop: "{{ openstack_info.openstack_servers }}"
-    # ignore_errors: yes
-    delegate_to: app_servers
+    until: '"alive" in result.content'
+    retries: 10
+    delay: 1
+    delegate_to: workstation
 
   - name: Debug Info
     debug:
