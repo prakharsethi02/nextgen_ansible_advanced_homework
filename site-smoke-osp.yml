@@ -1,46 +1,22 @@
----
-- name: End to end smoke tests
-  hosts: apps:appdbs
-  gather_facts: true
-  become: true
-  tags:
-    - osp.smoke 
-
-  tasks:
-
-    - debug:
-        msg: 
-          # - "IP is {{ hostvars['appdb1']['ansible_default_ipv4']['address'] }}"
-          - "IP is {{ hostvars['appdb1']['inventory_hostname'] }}"
-          - "First App server  {{ groups.apps[0] }}" 
-        verbosity: 2        
-
-    - name: Smoketest Postgres database
-      postgresql_ping:
-        db: flask_db
-        # login_host: "{{ hostvars['appdb1']['ansible_default_ipv4']['address'] }}"
-        login_host: "{{ groups.appdbs[0].ansible_host }}"
-        login_user: flask
-        login_password: redhat
-        ssl_mode: disable
-      delegate_to: "{{ groups.apps[0] }}"
-      run_once: true
-      tags:
-        - osp.smoke
-
-- name: End to end smoke tests
-  hosts: apps
-  become: false
+- hosts: workstation
   gather_facts: false
-  tags:
-    - osp.smoke
+  pre_tasks: 
+  - name: Include Common Vars
+    include_vars: vars/common-vars.yml
   tasks:
- 
-    - name: Check webserver for correct response
-      uri:
-        url: "http://frontend1.{{ GUID }}.example.opentlc.com"
-        return_content: yes
-      retries: 10
-      delay: 1
-      register: result
-      delegate_to: localhost
+  - name: Get OpenStack Instances
+    os_server_info:
+      cloud: devstack
+      server: frontend*
+      filters:
+        vm_state: active
+    register: osp_frontends
+
+  - name: Frontend HTTP Request
+    uri:
+      url: "{{ frontend_protocol }}://{{ item.public_v4 }}"
+      return_content: yes
+      status_code: 200
+    loop: "{{ osp_frontends.openstack_servers }}"
+    register: webpage
+    failed_when: apps_validation_content not in webpage.content
