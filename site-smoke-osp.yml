@@ -21,7 +21,7 @@
     retries: 10
     delay: 1
     register: result
-    delegate_to: frontend
+    delegate_to: app_servers:frontend_servers
 
   - name: Debug Info
     debug:
