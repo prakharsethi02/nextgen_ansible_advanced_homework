@@ -1,4 +1,4 @@
-- hosts: app_servers
+- hosts: workstation
   gather_facts: false
   tasks:
   - name: OpenStack servers
@@ -21,7 +21,7 @@
     # when: 'item.hostname == "frontend"'
     # loop: "{{ openstack_info.openstack_servers }}"
     # ignore_errors: yes
-    delegate_to: workstation
+    delegate_to: app_servers
 
   - name: Debug Info
     debug:
