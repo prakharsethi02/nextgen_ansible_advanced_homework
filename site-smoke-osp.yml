@@ -1,24 +1,25 @@
 - hosts: workstation
-  gather_facts: true
-  roles:
-  - name: osp-facts
-
-
-- name: End to end smoke tests
-  hosts: app1
-  become: false
   gather_facts: false
-  tags:
-    - smoketest  
   tasks:
- 
-    - name: Check webserver for correct response
-      uri:
-      #  url: "http://frontend1.{{ GUID }}.example.opentlc.com/ping"
-        url: "http://{{ groups.frontends[0] }}/ping"
-        return_content: yes
-      until: '"alive" in result.content'
-      retries: 10
-      delay: 1
-      register: result
-      delegate_to: localhost
+  #Get the groups that we need
+  - name: OpenStack servers
+    include_role:
+      name: osp-facts
+
+  # - name: Curl website
+  #   command: curl http://{{ (groups['frontends'])[0] }}
+  #   register: webpage
+  - uri:
+      url: http://{{ groups['frontends'][0] }}
+      return_content: yes
+    register: webpage
+    loop: "{{ groups['frontends'] }}"
+
+  - debug:
+      var: webpage
+
+  - name: Fail if 'Ansible has done its job' is not in the page content
+    fail:
+    when: "'Ansible has done its job' not in webpage.results[0].content"
+    tags:
+      - osp.smoke
